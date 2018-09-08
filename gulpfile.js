@@ -2,6 +2,7 @@ var gulp = require('gulp');
 var clean = require('gulp-clean');
 var ts = require('gulp-typescript');
 var runSequence = require('run-sequence');
+const mocha = require('gulp-mocha');
 
 var tsProject = ts.createProject('src/tsconfig.json');
 
@@ -21,4 +22,11 @@ gulp.task('default', function(callback) {
     'clean',
     'ts',
     callback);
+});
+
+gulp.task('test', ['default'], function(callback) {
+  return gulp.src(['build/tests/*.js'], {read: false})
+        .pipe(mocha({
+            reporter: 'nyan'
+        }));
 });
