@@ -1,5 +1,5 @@
 import * as disperse from '../interfaces';
-import {Operation, NamedWorker, taskProviderFromList} from '../disperse';
+import {Operation, NamedWorker, taskProviderFromList} from '..';
 import wait from '../util/wait';
 
 import { expect } from 'chai';

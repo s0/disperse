@@ -1,5 +1,23 @@
 {
-  "dependencies": {
+  "name": "@samlanning/disperse",
+  "version": "0.0.1-alpha.1",
+  "description": "A small library for distributing the core work of many tasks across a number of workers.",
+  "license": "MIT",
+  "main": "build/index.js",
+  "types": "build/index.d.js",
+  "author": {
+    "name" : "Sam Lanning",
+    "email" : "sam@samlanning.com",
+    "url" : "https://samlanning.com/"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/samlanning/disperse.git"
+  },
+  "bugs": {
+    "url": "https://github.com/samlanning/disperse/issues"
+  },
+  "devDependencies": {
     "@types/chai": "^4.1.4",
     "@types/mocha": "^5.2.5",
     "chai": "^4.1.2",

@@ -1,0 +1,7 @@
+/node_modules
+/build/tests
+/src
+.npmignore
+.gitignore
+gulpfile.js
+yarn.lock
