@@ -36,6 +36,7 @@ describe("Basic Functionality", () => {
       o.registerWorker(new SumWorker('A'));
 
       expect(await result).to.equal(6);
+      await o.waitUntilFinished();
     });
     // Task that has a delay between action result and resolution
     it("Delayed Processing", async () => {
@@ -54,6 +55,7 @@ describe("Basic Functionality", () => {
       o.registerWorker(new SumWorker('A'));
 
       expect(await result).to.equal(6);
+      await o.waitUntilFinished();
     });
     it("Delayed Request", async () => {
 
@@ -70,6 +72,7 @@ describe("Basic Functionality", () => {
       o.registerWorker(new SumWorker('A'));
 
       expect(await result).to.equal(6);
+      await o.waitUntilFinished();
     });
     it("Delayed Request + Processing", async () => {
 
@@ -88,6 +91,7 @@ describe("Basic Functionality", () => {
       o.registerWorker(new SumWorker('A'));
 
       expect(await result).to.equal(6);
+      await o.waitUntilFinished();
     });
   });
 });

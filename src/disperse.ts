@@ -10,13 +10,16 @@ export class Operation<A, R> extends Loggable {
   private taskProvider: TaskProvider<A, R> | null;
 
   private readonly runningTasks: Task<A, R>[] = [];
-  // private readonly failedTasks: Task<A, R>[] = [];
+  private readonly failedTasks: Task<A, R>[] = [];
   private readonly queuedActions: WrappedAction<A, R>[] = [];
   private readonly runningActions: WrappedAction<A, R>[] = [];
   // private readonly failedActions: Action<A, R>[] = [];
 
   private _notifyPromise: Promise<void> | null = null;
   private _notifyResolve: (() => void) | null = null;
+
+  private _finishedResolve: (() => void) = () => {};
+  private readonly _finishedPromise = new Promise(resolve => this._finishedResolve = resolve);
 
   private notifyAll() {
     if (this._notifyResolve) {
@@ -45,6 +48,10 @@ export class Operation<A, R> extends Loggable {
     this.log('register worker', worker.id());
     // Just start running the worker
     worker.run(this.distributeAction);
+  }
+
+  public waitUntilFinished() {
+    return this._finishedPromise;
   }
 
   // Methods that are passed externally (and need to be bound)
@@ -94,7 +101,9 @@ export class Operation<A, R> extends Loggable {
         return action;
       }
     }
-    // no more tasks and no queued actions
+    // no more tasks and no queued actions, we're done
+    // TODO: also detect finishing if all tasks are run and workers don't ask for more work
+    this._finishedResolve();
     return 'no_actions';
   }
 
@@ -109,10 +118,15 @@ export class Operation<A, R> extends Loggable {
     this.runningTasks.push(task);
     task(this.performAction)
       .then(() => {
-        // TODO: Remove from running tasks and this.notifyAll();
+        const i = this.runningTasks.indexOf(task);
+        if (i >= 0) this.runningTasks.splice(i, 1);
+        this.notifyAll();
       })
       .catch(() => {
-        // TODO: Remove from running tasks and move to errored tasks and this.notifyAll();
+        this.failedTasks.push(task);
+        const i = this.runningTasks.indexOf(task);
+        if (i >= 0) this.runningTasks.splice(i, 1);
+        this.notifyAll();
       });
   }
 
