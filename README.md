@@ -2,6 +2,8 @@
 
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/samlanning/disperse.js.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/samlanning/disperse.js/alerts/)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/samlanning/disperse.js.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/samlanning/disperse.js/context:javascript)
+![npm (scoped)](https://img.shields.io/npm/v/@samlanning/disperse.svg)
+
 
 A small typescript library for distributing the core work of many tasks across a
 number of "workers".
