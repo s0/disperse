@@ -44,7 +44,6 @@ describe("Basic Functionality", () => {
 
       const result = new Promise<number>(resolve => {
         tasks.push(async performAction => {
-          // await wait(100); // TODO make this work
           const a = await performAction(api => api.sum(1, 2, 3));
           await wait(100);
           resolve(a);
