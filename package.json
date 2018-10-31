@@ -1,6 +1,6 @@
 {
   "name": "@samlanning/disperse",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1",
   "description": "A small library for distributing the core work of many tasks across a number of workers.",
   "license": "MIT",
   "main": "build/index.js",
