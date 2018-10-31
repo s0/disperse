@@ -15,6 +15,22 @@ export class Operation<A, R> extends Loggable {
   private readonly runningActions: WrappedAction<A, R>[] = [];
   // private readonly failedActions: Action<A, R>[] = [];
 
+  private _notifyPromise: Promise<void> | null = null;
+  private _notifyResolve: (() => void) | null = null;
+
+  private notifyAll() {
+    if (this._notifyResolve) {
+      this._notifyResolve();
+      this._notifyResolve = null;
+      this._notifyPromise = null;
+    }
+  }
+
+  private waitForNotify() {
+    if (this._notifyPromise) return this._notifyPromise;
+    this._notifyPromise = new Promise(resolve => this._notifyResolve = resolve);
+  }
+
   constructor(taskProvider: TaskProvider<A, R>) {
     super('Operation');
     this.taskProvider = taskProvider;
@@ -50,6 +66,7 @@ export class Operation<A, R> extends Loggable {
         a: action,
         callback: resolve
       })
+      this.notifyAll();
     });
   }
 
@@ -63,12 +80,21 @@ export class Operation<A, R> extends Loggable {
       // don't completely fill up the queue.
       await this.startNewTask();
     }
-    // TODO: NEXT: make this work when a task is "slow" requesting an action
     const action = this.queuedActions.shift();
     if (action) {
       this.runningActions.push(action);
       return action;
     }
+    // Handle when new tasks won't immidiately request actions
+    while (this.runningTasks.length !== 0) {
+      await this.waitForNotify();
+      const action = this.queuedActions.shift();
+      if (action) {
+        this.runningActions.push(action);
+        return action;
+      }
+    }
+    // no more tasks and no queued actions
     return 'no_actions';
   }
 
@@ -83,10 +109,10 @@ export class Operation<A, R> extends Loggable {
     this.runningTasks.push(task);
     task(this.performAction)
       .then(() => {
-        // TODO: Remove from running tasks
+        // TODO: Remove from running tasks and this.notifyAll();
       })
       .catch(() => {
-        // TODO: Remove from running tasks and move to errored tasks
+        // TODO: Remove from running tasks and move to errored tasks and this.notifyAll();
       });
   }
 
