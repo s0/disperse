@@ -2,8 +2,8 @@
 
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/samlanning/disperse.js.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/samlanning/disperse.js/alerts/)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/samlanning/disperse.js.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/samlanning/disperse.js/context:javascript)
-![npm (scoped)](https://img.shields.io/npm/v/@samlanning/disperse.svg)
-![Travis (.org)](https://img.shields.io/travis/samlanning/disperse.svg)
+[![npm (scoped)](https://img.shields.io/npm/v/@samlanning/disperse.svg)](https://www.npmjs.com/package/@samlanning/disperse)
+[![Travis (.org)](https://img.shields.io/travis/samlanning/disperse.svg)](https://travis-ci.org/samlanning/disperse)
 
 
 
