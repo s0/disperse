@@ -12,7 +12,7 @@ class SumWorker extends NamedWorker<SumAPI, number> {
   protected async runAction(action: disperse.Action<SumAPI, number>): Promise<number> {
     const api: SumAPI = {
       sum: async (...x) => {
-        return x.reduce((s, x) => s + x, 0);
+        return x.reduce((s, x) => s + x + 1, 0);
       }
     };
     return action(api);
