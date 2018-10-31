@@ -92,6 +92,10 @@ export class Operation<A, R> extends Loggable {
 
 }
 
+/**
+ * A basic worker with a string identifier, and which will immidiately run
+ * actions, continuously, until they run out.
+ */
 export abstract class NamedWorker<A, R> extends Loggable implements Worker<A, R> {
 
   private readonly _id: string;
@@ -105,7 +109,14 @@ export abstract class NamedWorker<A, R> extends Loggable implements Worker<A, R>
     return this._id;
   }
 
-  abstract run(distributeAction: ActionDistributor<A, R>): Promise<void>;
+  public async run(distributeAction: ActionDistributor<A, R>) {
+    let run = true;
+    while (run) {
+      run = await distributeAction(this.runAction) !== 'no_more_actions';
+    }
+  }
+
+  protected abstract runAction(action: Action<A, R>): Promise<R>;
 
 }
 

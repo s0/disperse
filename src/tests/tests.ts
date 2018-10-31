@@ -8,44 +8,87 @@ interface SumAPI {
   sum(...x: number[]): Promise<number>;
 }
 
-type Action = disperse.Action<SumAPI, number>;
+class SumWorker extends NamedWorker<SumAPI, number> {
+  protected async runAction(action: disperse.Action<SumAPI, number>): Promise<number> {
+    const api: SumAPI = {
+      sum: async (...x) => {
+        return x.reduce((s, x) => s + x, 0);
+      }
+    };
+    return action(api);
+  }
+}
 
-describe("Group 1", () => {
-  it("Basic Sum Task", async () => {
+describe("Basic Functionality", () => {
+  describe("Basic Sum Task", () => {
+    // Task that doesn't delay in requesting actions
+    it("Immidiate Task", async () => {
 
-    const tasks: disperse.Task<SumAPI, number>[] = [];
+      const tasks: disperse.Task<SumAPI, number>[] = [];
 
-    const result = new Promise<number>(resolve => {
-      tasks.push(async performAction => {
-        // await wait(100); // TODO make this work
-        const a = await performAction(api => api.sum(1, 2, 3));
-        await wait(100); // TODO make this work
-        resolve(a);
+      const result = new Promise<number>(resolve => {
+        tasks.push(async performAction => {
+          resolve(await performAction(api => api.sum(1, 2, 3)));
+        });
       });
+
+      const o = new Operation<SumAPI, number>(taskProviderFromList(tasks));
+      o.registerWorker(new SumWorker('A'));
+
+      expect(await result).to.equal(6);
     });
+    // Task that has a delay between action result and resolution
+    it("Delayed Processing", async () => {
 
-    class Worker extends NamedWorker<SumAPI, number> {
+      const tasks: disperse.Task<SumAPI, number>[] = [];
 
-      async run(distributeAction: disperse.ActionDistributor<SumAPI, number>) {
-        let run = true;
-        while (run) {
-          run = await distributeAction(this.runAction) !== 'no_more_actions';
-        }
-      }
+      const result = new Promise<number>(resolve => {
+        tasks.push(async performAction => {
+          // await wait(100); // TODO make this work
+          const a = await performAction(api => api.sum(1, 2, 3));
+          await wait(100);
+          resolve(a);
+        });
+      });
 
-      private async runAction(action: Action): Promise<number> {
-        const api: SumAPI = {
-          sum: async (...x) => {
-            return x.reduce((s, x) => s + x, 0);
-          }
-        };
-        return action(api);
-      }
-    }
+      const o = new Operation<SumAPI, number>(taskProviderFromList(tasks));
+      o.registerWorker(new SumWorker('A'));
 
-    const o = new Operation<SumAPI, number>(taskProviderFromList(tasks));
-    o.registerWorker(new Worker('A'));
+      expect(await result).to.equal(6);
+    });
+    it("Delayed Request", async () => {
 
-    expect(await result).to.equal(6);
+      const tasks: disperse.Task<SumAPI, number>[] = [];
+
+      const result = new Promise<number>(resolve => {
+        tasks.push(async performAction => {
+          await wait(100);
+          resolve(await performAction(api => api.sum(1, 2, 3)));
+        });
+      });
+
+      const o = new Operation<SumAPI, number>(taskProviderFromList(tasks));
+      o.registerWorker(new SumWorker('A'));
+
+      expect(await result).to.equal(6);
+    });
+    it("Delayed Request + Processing", async () => {
+
+      const tasks: disperse.Task<SumAPI, number>[] = [];
+
+      const result = new Promise<number>(resolve => {
+        tasks.push(async performAction => {
+          await wait(100);
+          const a = await performAction(api => api.sum(1, 2, 3));
+          await wait(100);
+          resolve(a);
+        });
+      });
+
+      const o = new Operation<SumAPI, number>(taskProviderFromList(tasks));
+      o.registerWorker(new SumWorker('A'));
+
+      expect(await result).to.equal(6);
+    });
   });
 });
