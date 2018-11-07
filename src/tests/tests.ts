@@ -100,9 +100,9 @@ describe("Basic Functionality", () => {
   });
 });
 
-
 describe("Concurrency Configuration", () => {
-  it("Default Max Number Of Workers", async () => {
+
+  const testMaxTasks = (expected: number, max?: number) => async () => {
 
     let tasksCount = 0;
     let maxTasks = 0;
@@ -134,11 +134,14 @@ describe("Concurrency Configuration", () => {
 
     console.log(maxTasks);
 
-    const o = new Operation<CallAPI, void>(taskProviderFromList(tasks));
+    const o = new Operation<CallAPI, void>(taskProviderFromList(tasks), max);
     o.registerWorker(new CallWorker('A'));
 
     await o.waitUntilFinished();
-    expect(maxTasks).to.equal(3);
+    expect(maxTasks).to.equal(expected);
 
-  });
+  }
+
+  it("Default Max Number Of Tasks", testMaxTasks(3));
+  it("Custom Max Number Of Tasks", testMaxTasks(5, 5));
 });
