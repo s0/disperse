@@ -12,6 +12,7 @@ export class Operation<A, R> extends Loggable {
   /** Changed to null when there are no more tasks */
   private taskProvider: TaskProvider<A, R> | null;
 
+  private readonly workers: Worker<A, R>[] = [];
   private readonly runningTasks: Task<A, R>[] = [];
   private readonly failedTasks: Task<A, R>[] = [];
   private readonly queuedActions: WrappedAction<A, R>[] = [];
@@ -49,7 +50,7 @@ export class Operation<A, R> extends Loggable {
 
   public registerWorker(worker: Worker<A, R>) {
     this.log('register worker', worker.id());
-    // Just start running the worker
+    this.workers.push(worker);
     worker.run(this.distributeAction);
   }
 
@@ -83,13 +84,7 @@ export class Operation<A, R> extends Loggable {
   // Other Internal Methods
 
   private async getNextAction(): Promise<WrappedAction<A, R> | 'no_actions'> {
-    while (this.queuedActions.length === 0 && this.taskProvider) {
-      // No current actions, let's add a new task so that it queues actions
-      // TODO: make it possible to limit the maximum number of tasks that can be active at once.
-      // so that tasks that may not operate synchronously (e.g. if they require file operations)
-      // don't completely fill up the queue.
-      await this.startNewTask();
-    }
+    await this.enqueueTasksIfNeeded();
     const action = this.queuedActions.shift();
     if (action) {
       this.runningActions.push(action);
@@ -110,8 +105,22 @@ export class Operation<A, R> extends Loggable {
     return 'no_actions';
   }
 
+  private async enqueueTasksIfNeeded() {
+    while (this.queuedActions.length === 0 && this.taskProvider) {
+      // No current actions, let's add a new task so that it queues actions
+      if (this.runningTasks.length >= this.getMaxConcurrentTasks()) {
+        // If we're already running the maximum number of tasks, lets not start any more.
+        console.log("Reached Maximum Number of tasks:", this.runningTasks.length);
+        break;
+      }
+      await this.startNewTask();
+    }
+  }
+
   private async startNewTask() {
+    console.log('startNewTask');
     if (!this.taskProvider) return;
+
     const task = await this.taskProvider();
     if (!task) {
       // No more tasks
@@ -123,14 +132,23 @@ export class Operation<A, R> extends Loggable {
       .then(() => {
         const i = this.runningTasks.indexOf(task);
         if (i >= 0) this.runningTasks.splice(i, 1);
+        this.enqueueTasksIfNeeded();
         this.notifyAll();
       })
       .catch(() => {
         this.failedTasks.push(task);
         const i = this.runningTasks.indexOf(task);
         if (i >= 0) this.runningTasks.splice(i, 1);
+        this.enqueueTasksIfNeeded();
         this.notifyAll();
       });
+  }
+
+  private getMaxConcurrentTasks() {
+    /** Default maximum number of tasks is 3x the number of workers. */
+    const safeDefault = this.workers.length * 3;
+    // TODO: allow user to configure this behaviour
+    return safeDefault;
   }
 
 }
