@@ -8,6 +8,10 @@ interface SumAPI {
   sum(...x: number[]): Promise<number>;
 }
 
+interface CallAPI {
+  call(): Promise<void>;
+}
+
 class SumWorker extends NamedWorker<SumAPI, number> {
   protected async runAction(action: disperse.Action<SumAPI, number>): Promise<number> {
     const api: SumAPI = {
@@ -93,5 +97,48 @@ describe("Basic Functionality", () => {
       expect(await result).to.equal(6);
       await o.waitUntilFinished();
     });
+  });
+});
+
+
+describe("Concurrency Configuration", () => {
+  it("Default Max Number Of Workers", async () => {
+
+    let tasksCount = 0;
+    let maxTasks = 0;
+
+    const tasks: disperse.Task<CallAPI, void>[] = [];
+
+    for (let i = 0; i < 20; i++) {
+      tasks.push(async performAction => {
+        tasksCount++;
+        maxTasks = Math.max(tasksCount, maxTasks);
+        await wait(1);
+        await performAction(api => api.call());
+        await wait(1);
+        await performAction(api => api.call());
+        tasksCount--;
+      });
+    }
+
+    class CallWorker extends NamedWorker<CallAPI, void> {
+      protected async runAction(action: disperse.Action<CallAPI, void>): Promise<void> {
+        const api: CallAPI = {
+          call: async () => {
+            await wait(2);
+          }
+        };
+        return action(api);
+      }
+    }
+
+    console.log(maxTasks);
+
+    const o = new Operation<CallAPI, void>(taskProviderFromList(tasks));
+    o.registerWorker(new CallWorker('A'));
+
+    await o.waitUntilFinished();
+    expect(maxTasks).to.equal(3);
+
   });
 });

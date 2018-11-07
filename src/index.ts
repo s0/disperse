@@ -13,6 +13,7 @@ export class Operation<A, R> extends Loggable {
   private taskProvider: TaskProvider<A, R> | null;
 
   private readonly workers: Worker<A, R>[] = [];
+  private readonly pendingTasks: Task<A, R>[] = [];
   private readonly runningTasks: Task<A, R>[] = [];
   private readonly failedTasks: Task<A, R>[] = [];
   private readonly queuedActions: WrappedAction<A, R>[] = [];
@@ -110,7 +111,6 @@ export class Operation<A, R> extends Loggable {
       // No current actions, let's add a new task so that it queues actions
       if (this.runningTasks.length >= this.getMaxConcurrentTasks()) {
         // If we're already running the maximum number of tasks, lets not start any more.
-        console.log("Reached Maximum Number of tasks:", this.runningTasks.length);
         break;
       }
       await this.startNewTask();
@@ -118,7 +118,6 @@ export class Operation<A, R> extends Loggable {
   }
 
   private async startNewTask() {
-    console.log('startNewTask');
     if (!this.taskProvider) return;
 
     const task = await this.taskProvider();
@@ -127,21 +126,33 @@ export class Operation<A, R> extends Loggable {
       this.taskProvider = null;
       return;
     }
-    this.runningTasks.push(task);
-    task(this.performAction)
-      .then(() => {
-        const i = this.runningTasks.indexOf(task);
-        if (i >= 0) this.runningTasks.splice(i, 1);
-        this.enqueueTasksIfNeeded();
-        this.notifyAll();
-      })
-      .catch(() => {
-        this.failedTasks.push(task);
-        const i = this.runningTasks.indexOf(task);
-        if (i >= 0) this.runningTasks.splice(i, 1);
-        this.enqueueTasksIfNeeded();
-        this.notifyAll();
-      });
+    this.pendingTasks.push(task);
+    this.startPendingTasks();
+  }
+
+  private async startPendingTasks() {
+    // Wait until we actually are allowed to run a new task
+    while (this.runningTasks.length >= this.getMaxConcurrentTasks()) {
+      await this.waitForNotify();
+    }
+    const task = this.pendingTasks.shift();
+    if (task) {
+      this.runningTasks.push(task);
+      task(this.performAction)
+        .then(() => {
+          const i = this.runningTasks.indexOf(task);
+          if (i >= 0) this.runningTasks.splice(i, 1);
+          this.notifyAll();
+          this.enqueueTasksIfNeeded();
+        })
+        .catch(() => {
+          this.failedTasks.push(task);
+          const i = this.runningTasks.indexOf(task);
+          if (i >= 0) this.runningTasks.splice(i, 1);
+          this.notifyAll();
+          this.enqueueTasksIfNeeded();
+        });
+    }
   }
 
   private getMaxConcurrentTasks() {
