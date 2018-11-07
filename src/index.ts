@@ -11,6 +11,7 @@ export class Operation<A, R> extends Loggable {
 
   /** Changed to null when there are no more tasks */
   private taskProvider: TaskProvider<A, R> | null;
+  private maxConcurrentTasks?: number;
 
   private readonly workers: Worker<A, R>[] = [];
   private readonly pendingTasks: Task<A, R>[] = [];
@@ -39,8 +40,9 @@ export class Operation<A, R> extends Loggable {
     this._notifyPromise = new Promise(resolve => this._notifyResolve = resolve);
   }
 
-  constructor(taskProvider: TaskProvider<A, R>) {
+  constructor(taskProvider: TaskProvider<A, R>, maxConcurrentTasks?: number) {
     super('Operation');
+    this.maxConcurrentTasks = maxConcurrentTasks;
     this.taskProvider = taskProvider;
     // Bind Methods
     this.distributeAction = this.distributeAction.bind(this);
@@ -156,9 +158,9 @@ export class Operation<A, R> extends Loggable {
   }
 
   private getMaxConcurrentTasks() {
+    if (this.maxConcurrentTasks !== undefined) return this.maxConcurrentTasks;
     /** Default maximum number of tasks is 3x the number of workers. */
     const safeDefault = this.workers.length * 3;
-    // TODO: allow user to configure this behaviour
     return safeDefault;
   }
 
